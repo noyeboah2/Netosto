@@ -4,6 +4,7 @@
                  /story?chapter=sickle-cell&scene=lungs (jump to a scene, e.g. from search) */
 (function (SIG) {
   'use strict';
+  var t = SIG.t;
 
   var root = document.getElementById('story-root');
   if (!root) return;
@@ -11,7 +12,7 @@
   var chapterId = SIG.qs('chapter') || 'sickle-cell';
   var chapter = SIG.chapters[chapterId];
   if (!chapter) {
-    root.innerHTML = '<div class="card"><h2>Chapter not found</h2><p>This chapter is not available yet.</p><a class="btn btn-primary" href="/chapters">See all chapters</a></div>';
+    root.innerHTML = '<div class="card"><h2>' + t('Chapter not found') + '</h2><p>' + t('This chapter is not available yet.') + '</p><a class="btn btn-primary" href="/chapters">' + t('See all chapters') + '</a></div>';
     return;
   }
 
@@ -22,7 +23,7 @@
   if (jumpTo && chapter.scenes[jumpTo]) {
     state = { history: [jumpTo], completedRun: false };
   } else if (state && state.history && state.history.length && state.history.every(function (id) { return chapter.scenes[id]; })) {
-    if (state.history.length > 1) setTimeout(function () { SIG.toast('Welcome back! Your progress was restored.'); }, 400);
+    if (state.history.length > 1) setTimeout(function () { SIG.toast(t('Welcome back! Your progress was restored.')); }, 400);
   } else {
     state = { history: [chapter.start], completedRun: false };
     SIG.track('chapter_start', { chapter: chapterId });
@@ -45,7 +46,7 @@
     var pct = Math.round((scene.step / chapter.totalSteps) * 100);
     progressFill.style.width = pct + '%';
     progressTrack.setAttribute('aria-valuenow', String(pct));
-    progressText.textContent = scene.ending ? 'Story complete' : 'Scene ' + state.history.length;
+    progressText.textContent = scene.ending ? t('Story complete') : t('Scene {n}', { n: state.history.length });
     progressPct.textContent = pct + '%';
   }
 
@@ -55,7 +56,7 @@
     var paragraphs = scene.text.map(function (p) { return '<p>' + SIG.renderTerms(p) + '</p>'; }).join('');
     var note = '';
     if (scene.note) {
-      note = '<details class="science-note" open><summary>What’s really happening: ' + SIG.escape(scene.note.title) + '</summary><div class="note-content">' +
+      note = '<details class="science-note" open><summary>' + t('What’s really happening:') + ' ' + SIG.escape(scene.note.title) + '</summary><div class="note-content">' +
         scene.note.text.map(function (p) { return '<p>' + SIG.renderTerms(p) + '</p>'; }).join('') +
         (scene.note.link ? '<p><a href="' + scene.note.link.href + '">' + SIG.escape(scene.note.link.label) + ' →</a></p>' : '') +
         '</div></details>';
@@ -63,10 +64,10 @@
 
     var choices;
     if (scene.ending) {
-      choices = '<div class="choices"><a class="btn btn-primary" href="/quiz?chapter=' + chapterId + '">Take the quiz (10 questions) →</a>' +
-        '<a class="btn btn-secondary" href="/summary?chapter=' + chapterId + '">See what you learned</a></div>';
+      choices = '<div class="choices"><a class="btn btn-primary" href="/quiz?chapter=' + chapterId + '">' + t('Take the quiz (10 questions) →') + '</a>' +
+        '<a class="btn btn-secondary" href="/summary?chapter=' + chapterId + '">' + t('See what you learned') + '</a></div>';
     } else {
-      choices = '<div class="choices" role="group" aria-label="Choose what happens next">' + scene.choices.map(function (c, i) {
+      choices = '<div class="choices" role="group" aria-label="' + t('Choose what happens next') + '">' + scene.choices.map(function (c, i) {
         return '<button type="button" class="choice-btn" data-choice="' + i + '"><span>' + SIG.escape(c.label) + '</span><span class="arrow" aria-hidden="true">→</span></button>';
       }).join('') + '</div>';
     }
@@ -122,7 +123,7 @@
     state = { history: [chapter.start], completedRun: false };
     SIG.track('chapter_start', { chapter: chapterId });
     render(true);
-    SIG.toast('Story restarted from the beginning.');
+    SIG.toast(t('Story restarted from the beginning.'));
   });
 
   render(false);

@@ -11,6 +11,8 @@
   'use strict';
 
   var SIG = (window.SIG = window.SIG || {});
+  var t = SIG.t || function (s, v) { return v ? s.replace(/\{(\w+)\}/g, function (m, k) { return k in v ? v[k] : m; }) : s; };
+  SIG.t = t;
 
   /* ---------- Utilities ---------- */
   SIG.escape = function (str) {
@@ -52,7 +54,7 @@
      No names, no accounts, no health information. */
   SIG.track = function (event, data) {
     try {
-      var payload = Object.assign({ event: event, page: window.location.pathname }, data || {});
+      var payload = Object.assign({ event: event, page: window.location.pathname, lang: SIG.lang || 'en' }, data || {});
       fetch('/api/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,6 +67,24 @@
   /* ---------- Chapter registry ---------- */
   SIG.chapters = SIG.chapters || {};
   SIG.registerChapter = SIG.registerChapter || function (chapter) { SIG.chapters[chapter.id] = chapter; };
+
+  /* ---------- Apply the visitor's language to all content ---------- */
+  if (SIG.lang && SIG.lang !== 'en') {
+    Object.keys(SIG.chapters).forEach(function (id) { SIG.chapters[id] = SIG.localizeChapter(SIG.chapters[id]); });
+    var gt = SIG.glossaryTranslations[SIG.lang] || {};
+    SIG.glossary = (SIG.glossary || []).map(function (g) {
+      var tr = gt[g.id];
+      if (!tr) return g;
+      // Keep the English word searchable even when the page is in Twi.
+      return Object.assign({}, g, { term: tr.term || g.term, def: tr.def || g.def, aliases: (g.aliases || []).concat([g.term], tr.aliases || []) });
+    });
+    SIG.chapterList = (SIG.chapterList || []).map(function (c) {
+      return Object.assign({}, c, { title: t(c.title), tagline: t(c.tagline) });
+    });
+    SIG.pages = (SIG.pages || []).map(function (p) {
+      return Object.assign({}, p, { title: t(p.title), text: t(p.text) });
+    });
+  }
 
   /* ---------- Glossary helpers ---------- */
   SIG.glossaryById = {};
@@ -124,12 +144,12 @@
     if (activeTerm === btn && !popover.hidden) { closePopover(true); return; }
     closePopover(false);
 
-    popover.setAttribute('aria-label', 'Definition of ' + entry.term);
+    popover.setAttribute('aria-label', t('Definition of {term}', { term: entry.term }));
     popover.innerHTML =
       '<strong>' + SIG.escape(entry.term) + '</strong>' +
       '<p>' + SIG.escape(entry.def) + '</p>' +
-      '<div class="pop-actions"><a href="/glossary#' + entry.id + '">See in glossary</a>' +
-      '<button type="button" class="pop-close" aria-label="Close definition">Close &times;</button></div>';
+      '<div class="pop-actions"><a href="/glossary#' + entry.id + '">' + t('See in glossary') + '</a>' +
+      '<button type="button" class="pop-close" aria-label="' + t('Close definition') + '">' + t('Close') + ' &times;</button></div>';
     popover.hidden = false;
 
     var rect = btn.getBoundingClientRect();
@@ -182,22 +202,23 @@
     return String(s || '').toLowerCase()
       .replace(/haem/g, 'hem').replace(/anaem/g, 'anem').replace(/foet/g, 'fet')
       .replace(/isation/g, 'ization').replace(/ise\b/g, 'ize')
-      .replace(/[^\w\s-]/g, ' ');
+      .replace(/ɛ/g, 'e').replace(/ɔ/g, 'o')            // Twi letters also match plain e / o
+      .replace(/[^\p{L}\p{N}\s-]/gu, ' ');
   }
 
   var searchIndex = null;
   function buildIndex() {
     var items = [];
     (SIG.glossary || []).forEach(function (g) {
-      items.push({ type: 'Glossary', title: g.term, text: g.def, url: '/glossary#' + g.id, extra: (g.aliases || []).join(' ') });
+      items.push({ type: t('Glossary'), title: g.term, text: g.def, url: '/glossary#' + g.id, extra: (g.aliases || []).join(' ') });
     });
     (SIG.chapterList || []).forEach(function (c) {
       items.push({
-        type: 'Chapter',
+        type: t('Chapter'),
         title: c.title,
-        text: c.tagline + (c.status === 'available' ? '' : ' (coming soon)'),
+        text: c.tagline + (c.status === 'available' ? '' : ' (' + t('coming soon') + ')'),
         url: c.status === 'available' ? c.url : '/chapters#' + c.id,
-        extra: c.system + ' ' + c.inheritance
+        extra: c.system + ' ' + c.inheritance + ' ' + t(c.system) + ' ' + t(c.inheritance)
       });
     });
     Object.keys(SIG.chapters).forEach(function (cid) {
@@ -206,7 +227,7 @@
         var sc = ch.scenes[sid];
         if (!sc.note) return;
         items.push({
-          type: 'Science note',
+          type: t('Science note'),
           title: sc.note.title || sc.title,
           text: SIG.stripTerms(sc.note.text.join(' ')),
           url: '/story?chapter=' + cid + '&scene=' + sid,
@@ -215,7 +236,7 @@
       });
     });
     (SIG.pages || []).forEach(function (p) {
-      items.push({ type: 'Page', title: p.title, text: p.text, url: p.url, extra: p.keywords || '' });
+      items.push({ type: t('Page'), title: p.title, text: p.text, url: p.url, extra: p.keywords || '' });
     });
     items.forEach(function (it) {
       it._title = norm(it.title);
@@ -233,8 +254,8 @@
     else if (item._title.indexOf(q) === 0) s += 70;
     else if ((' ' + item._title).indexOf(' ' + q) !== -1) s += 50;
     else if (item._title.indexOf(q) !== -1) s += 35;
-    if (item.type === 'Glossary') s += 5;
-    if (item.type === 'Chapter') s += 8;
+    if (item.type === t('Glossary')) s += 5;
+    if (item.type === t('Chapter')) s += 8;
     return s;
   }
 
@@ -298,7 +319,7 @@
       if (q.trim().length < 2) { list.innerHTML = ''; close(); return; }
       results = SIG.search(q, 8);
       if (!results.length) {
-        list.innerHTML = '<li class="no-results" role="presentation">No results for “' + SIG.escape(q) + '”. Try “haemoglobin”, “genotype” or “crisis”.</li>';
+        list.innerHTML = '<li class="no-results" role="presentation">' + SIG.escape(t('No results for “{q}”. Try “haemoglobin”, “genotype” or “crisis”.', { q: q })) + '</li>';
       } else {
         list.innerHTML = results.map(function (r, i) {
           return '<li role="option" id="sr-' + i + '" aria-selected="false"><a href="' + r.url + '" tabindex="-1">' +
@@ -340,15 +361,15 @@
         var progress = live ? SIG.store.get('progress:' + c.id, null) : null;
         var best = live ? SIG.store.get('quiz:' + c.id, null) : null;
         var action = live
-          ? '<a class="btn btn-primary btn-small" href="' + c.url + '">' + (progress && progress.history && progress.history.length > 1 ? 'Continue story' : 'Play now') + '</a>'
-          : '<span class="btn btn-secondary btn-small" aria-disabled="true">Coming soon</span>';
+          ? '<a class="btn btn-primary btn-small" href="' + c.url + '">' + t(progress && progress.history && progress.history.length > 1 ? 'Continue story' : 'Play now') + '</a>'
+          : '<span class="btn btn-secondary btn-small" aria-disabled="true">' + t('Coming soon') + '</span>';
         return '<article class="card chapter-card' + (live ? '' : ' is-soon') + '" id="' + c.id + '">' +
-          '<span class="chapter-number">Chapter ' + (i + 1) + '</span>' +
+          '<span class="chapter-number">' + t('Chapter {n}', { n: i + 1 }) + '</span>' +
           '<h3>' + SIG.escape(c.title) + '</h3>' +
-          '<div class="chapter-meta"><span class="badge ' + (live ? 'badge-live' : 'badge-soon') + '">' + (live ? 'Available' : 'Coming soon') + '</span>' +
-          '<span class="badge">' + SIG.escape(c.system) + '</span><span class="badge">' + SIG.escape(c.inheritance) + '</span></div>' +
+          '<div class="chapter-meta"><span class="badge ' + (live ? 'badge-live' : 'badge-soon') + '">' + t(live ? 'Available' : 'Coming soon') + '</span>' +
+          '<span class="badge">' + SIG.escape(t(c.system)) + '</span><span class="badge">' + SIG.escape(t(c.inheritance)) + '</span></div>' +
           '<p>' + SIG.escape(c.tagline) + '</p>' +
-          (best ? '<p class="muted mb-0">Your best quiz score: <strong>' + best.best + '/' + best.total + '</strong></p>' : '') +
+          (best ? '<p class="muted mb-0">' + t('Your best quiz score:') + ' <strong>' + best.best + '/' + best.total + '</strong></p>' : '') +
           '<div class="card-actions">' + action + '</div></article>';
       }).join('');
     });
@@ -360,12 +381,12 @@
     var shareUrl = url || (window.location.origin + '/');
     var full = text + ' ' + shareUrl;
     var html = '';
-    if (navigator.share) html += '<button type="button" class="btn btn-primary btn-small" data-share="native">Share</button>';
+    if (navigator.share) html += '<button type="button" class="btn btn-primary btn-small" data-share="native">' + t('Share') + '</button>';
     html +=
       '<a class="btn btn-secondary btn-small" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(full) + '">WhatsApp</a>' +
       '<a class="btn btn-secondary btn-small" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(shareUrl) + '">X / Twitter</a>' +
       '<a class="btn btn-secondary btn-small" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl) + '">Facebook</a>' +
-      '<button type="button" class="btn btn-secondary btn-small" data-share="copy">Copy text</button>';
+      '<button type="button" class="btn btn-secondary btn-small" data-share="copy">' + t('Copy text') + '</button>';
     host.innerHTML = html;
     host.classList.add('share-row');
     host.addEventListener('click', function (e) {
@@ -374,7 +395,7 @@
       if (b.getAttribute('data-share') === 'native') {
         navigator.share({ title: 'Stories in Our Genes', text: text, url: shareUrl }).catch(function () {});
       } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(full).then(function () { SIG.toast('Copied! Paste it anywhere to share.'); });
+        navigator.clipboard.writeText(full).then(function () { SIG.toast(t('Copied! Paste it anywhere to share.')); });
       }
     });
   };
@@ -393,13 +414,13 @@
         var learned = fd.get('learned');
         if (!rating || !learned) {
           status.className = 'form-status err';
-          status.textContent = 'Please choose a rating and answer “Did you learn something new?”.';
+          status.textContent = t('Please choose a rating and answer “Did you learn something new?”.');
           return;
         }
         var btn = form.querySelector('button[type="submit"]');
         btn.disabled = true;
         status.className = 'form-status';
-        status.textContent = 'Sending…';
+        status.textContent = t('Sending…');
         fetch('/api/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -418,10 +439,10 @@
           SIG.store.set('feedback-sent', Date.now());
           form.reset();
           status.className = 'form-status ok';
-          status.textContent = 'Thank you! Your feedback helps improve this project.';
+          status.textContent = t('Thank you! Your feedback helps improve this project.');
         }).catch(function () {
           status.className = 'form-status err';
-          status.textContent = 'Sorry, we couldn’t send that right now. Please try again later.';
+          status.textContent = t('Sorry, we couldn’t send that right now. Please try again later.');
         }).finally(function () {
           btn.disabled = false;
         });
@@ -429,8 +450,32 @@
     });
   }
 
+  /* ---------- Language switch + review notice ---------- */
+  function initLang() {
+    document.querySelectorAll('[data-lang-switch]').forEach(function (btn) {
+      var target = SIG.lang === 'en' ? 'tw' : 'en';
+      btn.textContent = target === 'tw' ? 'Twi' : 'English';
+      btn.setAttribute('lang', target);
+      btn.setAttribute('aria-label', target === 'tw' ? 'Kenkan wɔ Twi mu (Read in Twi)' : 'Read in English');
+      btn.addEventListener('click', function () { SIG.setLang(target); });
+    });
+    if (SIG.lang === 'tw') {
+      var main = document.getElementById('main');
+      if (main) {
+        var note = document.createElement('div');
+        note.className = 'lang-notice';
+        note.innerHTML = '<div class="container">' + SIG.escape(t('This Twi translation is being reviewed by fluent speakers. If something reads wrongly, tell us in the feedback form.')) +
+          ' <a href="#" data-lang-en lang="en">Read in English</a></div>';
+        main.insertBefore(note, main.firstChild);
+        note.querySelector('[data-lang-en]').addEventListener('click', function (e) { e.preventDefault(); SIG.setLang('en'); });
+      }
+    }
+  }
+
   /* ---------- Boot ---------- */
   function boot() {
+    if (SIG.applyI18n) SIG.applyI18n(document.body);
+    initLang();
     initNav();
     initSearch();
     renderChapterCards();

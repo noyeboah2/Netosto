@@ -52,6 +52,7 @@
   }
 
   function label(x, y, text, color) {
+    text = SIG.escape(SIG.t ? SIG.t(text) : text);
     return '<text x="' + x + '" y="' + y + '" font-family="Atkinson Hyperlegible, sans-serif" font-size="13" font-weight="700" fill="' + (color || '#5e554f') + '" text-anchor="middle">' + text + '</text>';
   }
 
@@ -75,7 +76,7 @@
       }
       return bg('#e7f4f3', '#cfe9e7') + rungs +
         '<circle cx="196" cy="130" r="22" fill="none" stroke="#c98a12" stroke-width="3" stroke-dasharray="5 4"/>' +
-        '<rect x="128" y="200" width="144" height="34" rx="17" fill="#fff"/>' + label(200, 222, 'A → T: one letter changed', '#7a5208');
+        '<rect x="98" y="200" width="204" height="34" rx="17" fill="#fff"/>' + label(200, 222, 'A → T: one letter changed', '#7a5208');
     },
     vessel: function () {
       var cells = rbc(60, 110, 16) + rbc(110, 160, 15) + rbc(300, 105, 15) + rbc(345, 160, 16) + rbc(250, 165, 14) + rbc(150, 95, 13);
@@ -112,7 +113,7 @@
       var jam = sickle(185, 125, 20, 30) + sickle(205, 140, 20, -20) + sickle(195, 115, 18, 70) + sickle(215, 120, 17, 120) + sickle(180, 145, 17, -60) + sickle(220, 145, 16, 10);
       return bg('#fde8e6', '#f8cfcb') + vesselWalls(true) + rbc(60, 120, 15) + rbc(90, 150, 14) + rbc(120, 115, 14) + jam +
         '<g fill="#c98a12"><path d="M268 72 l8 -16 l4 12 l10 -14 l-4 22 z"/><path d="M290 190 l12 -6 l-2 10 l14 -2 l-18 12 z"/></g>' +
-        label(330, 135, 'No oxygen', '#8c1c16') + label(200, 240, 'Blocked vessel: a pain crisis');
+        label(335, 135, 'No oxygen', '#8c1c16') + label(200, 240, 'Blocked vessel: a pain crisis');
     },
     warning: function () {
       return bg('#fff0e3', '#ffd9bd') +
@@ -162,7 +163,7 @@
 
   /* Small hero illustration for the home page. */
   SIG.heroArt = function () {
-    return '<svg viewBox="0 0 400 260" role="img" aria-label="A smiling red blood cell travelling through a blood vessel alongside a sickle-shaped cell" xmlns="http://www.w3.org/2000/svg">' +
+    return '<svg viewBox="0 0 400 260" role="img" aria-label="' + SIG.escape(SIG.t('A smiling red blood cell travelling through a blood vessel alongside a sickle-shaped cell')) + '" xmlns="http://www.w3.org/2000/svg">' +
       bg('#fff1ec', '#ffe0d6') + vesselWalls(false) + rbc(70, 105, 16) + rbc(320, 165, 16) + rbc(120, 165, 14) + sickle(300, 100, 22, -15) +
       hero(205, 130, 34, 'happy') + '</svg>';
   };

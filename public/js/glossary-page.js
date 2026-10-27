@@ -2,6 +2,7 @@
    to every story scene and science note where the term is used. */
 (function (SIG) {
   'use strict';
+  var tr = SIG.t;
 
   var root = document.getElementById('glossary-root');
   var nav = document.getElementById('alpha-nav');
@@ -46,7 +47,7 @@
     }).join('');
 
     if (!shown.length) {
-      root.innerHTML = '<p class="muted">No terms match “' + SIG.escape(query) + '”.</p>';
+      root.innerHTML = '<p class="muted">' + SIG.escape(tr('No terms match “{q}”.', { q: query })) + '</p>';
       return;
     }
 
@@ -57,7 +58,7 @@
           return '<div class="glossary-entry" id="' + t.id + '"><h3>' + SIG.escape(t.term) + '</h3>' +
             '<p class="mb-0">' + SIG.escape(t.def) + '</p>' +
             (uses.length
-              ? '<p class="appears">Appears in: ' + uses.map(function (u) {
+              ? '<p class="appears">' + tr('Appears in:') + ' ' + uses.map(function (u) {
                   return '<a href="/story?chapter=' + u.cid + '&amp;scene=' + u.sid + '">' + SIG.escape(u.title) + '</a>';
                 }).join(' · ') + '</p>'
               : '') +

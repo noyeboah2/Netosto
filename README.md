@@ -37,9 +37,13 @@ stories-in-our-genes/
     ├── favicon.svg
     ├── css/styles.css
     └── js/
+        ├── i18n.js             Language engine (English / Twi switch)
+        ├── i18n/tw.js          Twi text for menus, buttons and every page
         ├── data/glossary.js    All glossary terms
+        ├── data/glossary.tw.js Twi glossary definitions
         ├── data/chapters.js    Chapter list + searchable pages
         ├── data/sickle-cell.js Story scenes, science notes, quiz, summary, sources
+        ├── data/sickle-cell.tw.js  The whole chapter in Twi
         ├── art.js              Story illustrations (inline SVG)
         ├── main.js             Shared: nav, search, term pop-ups, share, feedback, tracking
         ├── story.js            Story engine (branching, progress, back/restart, auto-save)
@@ -119,6 +123,19 @@ Open http://localhost:8788. Functions run locally too (without a database, they 
 The story engine, quiz, summary, glossary links and search all work automatically for the new chapter.
 
 ---
+
+## Languages (English + Twi)
+
+- Visitors switch with the **Twi / English** button in the header. The choice is remembered on their device.
+- Share a link that opens straight in Twi by adding `?lang=tw`, e.g. `https://netosto.pages.dev/?lang=tw`.
+- The `/stats` dashboard shows **Views in English** and **Views in Twi** separately.
+- The Twi text is a **draft**. A notice on every Twi page says it is being reviewed. To correct a translation:
+  - menus, buttons and page text → `public/js/i18n/tw.js` (left side = English, right side = Twi; only edit the right side)
+  - the story, quiz and summary → `public/js/data/sickle-cell.tw.js`
+  - glossary definitions → `public/js/data/glossary.tw.js`
+  Keep anything inside `[[ ]]` and `{ }` exactly as it is; those are links and numbers.
+- Once a fluent speaker has approved it, delete the review notice by removing the `if (SIG.lang === 'tw') { ... }`
+  block inside `initLang()` in `public/js/main.js`.
 
 ## Privacy design
 - No accounts, no cookies, no names, no IP addresses, no health data.

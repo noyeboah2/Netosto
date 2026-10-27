@@ -1,11 +1,12 @@
 /**
  * POST /api/track
  * Records one anonymous usage event in the D1 database bound as `DB`.
- * Body: { event, page?, chapter?, value? }
- * Stored: event name, page path, chapter id, a number (quiz %), and the date.
+ * Body: { event, page?, chapter?, value?, lang? }
+ * Stored: event name, page path, chapter id, a number (quiz %), site language, and the date.
  * Never stored: IP address, names, cookies, device IDs or health data.
  */
 const ALLOWED_EVENTS = new Set(['page_view', 'chapter_start', 'chapter_complete', 'quiz_score']);
+const ALLOWED_LANGS = new Set(['en', 'tw']);
 
 let schemaReady = false;
 async function ensureSchema(db) {
@@ -17,11 +18,14 @@ async function ensureSchema(db) {
       page TEXT,
       chapter TEXT,
       value REAL,
+      lang TEXT,
       day TEXT NOT NULL,
       created_at INTEGER NOT NULL
     )`),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_events_event_day ON events(event, day)')
   ]);
+  // Databases created before language support need the new column.
+  try { await db.prepare('ALTER TABLE events ADD COLUMN lang TEXT').run(); } catch (e) { /* column already exists */ }
   schemaReady = true;
 }
 
@@ -49,6 +53,7 @@ export async function onRequestPost({ request, env }) {
 
   const page = cleanSlug(body.page, 120);
   const chapter = cleanSlug(body.chapter);
+  const lang = ALLOWED_LANGS.has(body.lang) ? body.lang : 'en';
   let value = null;
   if (event === 'quiz_score') {
     const n = Number(body.value);
@@ -63,8 +68,8 @@ export async function onRequestPost({ request, env }) {
     await ensureSchema(env.DB);
     const now = Date.now();
     const day = new Date(now).toISOString().slice(0, 10);
-    await env.DB.prepare('INSERT INTO events (event, page, chapter, value, day, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(event, page, chapter, value, day, now)
+    await env.DB.prepare('INSERT INTO events (event, page, chapter, value, lang, day, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(event, page, chapter, value, lang, day, now)
       .run();
     return json({ ok: true, stored: true });
   } catch (err) {

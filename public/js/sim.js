@@ -14,6 +14,7 @@
    This is an educational model, not a medical prediction. */
 (function (SIG) {
   'use strict';
+  var t = SIG.t;
 
   var canvas = document.getElementById('sim-canvas');
   if (!canvas || !canvas.getContext) return;
@@ -167,11 +168,11 @@
     ctx.fillStyle = '#7a4a40';
     ctx.font = '700 12px "Atkinson Hyperlegible", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Narrow capillary', cx, mid - NARROW - 14);
+    ctx.fillText(t('Narrow capillary'), cx, mid - NARROW - 14);
     ctx.textAlign = 'left';
-    ctx.fillText('Blood in →', 10, 18);
+    ctx.fillText(t('Blood in →'), 10, 18);
     ctx.textAlign = 'right';
-    ctx.fillText(starve > 0.3 ? 'Tissue low on oxygen' : 'Oxygen reaches tissue', W - 10, 18);
+    ctx.fillText(t(starve > 0.3 ? 'Tissue low on oxygen' : 'Oxygen reaches tissue'), W - 10, 18);
   }
 
   function drawCell(c) {
@@ -221,7 +222,7 @@
       ctx.fillStyle = '#fff';
       ctx.font = '700 13px "Atkinson Hyperlegible", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Paused: press Play', W / 2, H - 24);
+      ctx.fillText(t('Paused: press Play'), W / 2, H - 24);
     }
   }
 
@@ -247,7 +248,7 @@
 
   function setRunning(on) {
     running = on;
-    playBtn.textContent = on ? 'Pause' : 'Play';
+    playBtn.textContent = t(on ? 'Pause' : 'Play');
     playBtn.setAttribute('aria-pressed', on ? 'false' : 'true');
     if (on) { lastT = 0; requestAnimationFrame(loop); } else { draw(); }
   }
@@ -255,11 +256,12 @@
   function describe() {
     var pct = Math.round(sickledFraction * 100);
     var expectedFlow = Math.round((1 - 0.85 * (targetTrapped() / MAX_TRAPPED)) * 100);
+    var v = { pct: pct, flow: expectedFlow };
     var msg;
-    if (pct === 0) msg = 'With no sickled cells, every cell bends through the capillary and blood flows freely.';
-    else if (expectedFlow > 80) msg = 'With ' + pct + '% sickled cells, a few rigid cells get trapped. Flow drops to about ' + expectedFlow + '% of normal.';
-    else if (expectedFlow > 45) msg = 'With ' + pct + '% sickled cells, the capillary is partly blocked. Flow drops to about ' + expectedFlow + '% of normal, and tissue downstream gets less oxygen.';
-    else msg = 'With ' + pct + '% sickled cells, the capillary is mostly blocked. Flow drops to about ' + expectedFlow + '% of normal. This is what causes a pain crisis.';
+    if (pct === 0) msg = t('With no sickled cells, every cell bends through the capillary and blood flows freely.');
+    else if (expectedFlow > 80) msg = t('With {pct}% sickled cells, a few rigid cells get trapped. Flow drops to about {flow}% of normal.', v);
+    else if (expectedFlow > 45) msg = t('With {pct}% sickled cells, the capillary is partly blocked. Flow drops to about {flow}% of normal, and tissue downstream gets less oxygen.', v);
+    else msg = t('With {pct}% sickled cells, the capillary is mostly blocked. Flow drops to about {flow}% of normal. This is what causes a pain crisis.', v);
     liveOut.textContent = msg;
   }
 

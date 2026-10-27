@@ -42,6 +42,7 @@ export async function onRequestGet({ request, env }) {
     averageQuizScore: null,
     last7Days: [],
     topPages: [],
+    pageViewsByLanguage: { en: 0, tw: 0 },
     feedback: { count: 0, averageRating: null, learned: { yes: 0, somewhat: 0, no: 0 } }
   };
 
@@ -66,6 +67,12 @@ export async function onRequestGet({ request, env }) {
 
     const pages = await db.prepare(`SELECT page, COUNT(*) AS n FROM events WHERE event='page_view' GROUP BY page ORDER BY n DESC LIMIT 8`).all();
     result.topPages = (pages.results || []).map((r) => ({ page: r.page || '/', visits: r.n }));
+
+    const hasLang = await db.prepare("SELECT 1 AS ok FROM pragma_table_info('events') WHERE name='lang'").first();
+    if (hasLang) {
+      const langs = await db.prepare(`SELECT COALESCE(lang, 'en') AS lang, COUNT(*) AS n FROM events WHERE event='page_view' GROUP BY COALESCE(lang, 'en')`).all();
+      for (const r of langs.results || []) result.pageViewsByLanguage[r.lang] = r.n;
+    }
   }
 
   if (await tableExists(db, 'feedback')) {

@@ -26,6 +26,8 @@
         tile('Average quiz score', fmt(d.averageQuizScore, '%')) +
         tile('Feedback responses', fmt(d.feedback.count)) +
         tile('Average rating', fmt(d.feedback.averageRating, ' / 5')) +
+        tile('Views in English', fmt((d.pageViewsByLanguage || {}).en)) +
+        tile('Views in Twi', fmt((d.pageViewsByLanguage || {}).tw)) +
       '</div>' +
       '<div class="grid grid-2 mt-2">' +
         '<div class="card"><h3>Page views, last 7 days</h3>' +
